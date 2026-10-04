@@ -1,7 +1,9 @@
 import random
 import unittest
+from unittest import mock
 
 from bopit import i18n
+from bopit import platform
 from bopit.audio import Audio
 from bopit.config import LANGUAGE_SOUNDS_DIR
 from bopit.engine.banter import Banter
@@ -39,6 +41,21 @@ class TranslationTests(unittest.TestCase):
 
     def test_system_language_is_known(self) -> None:
         self.assertIn(i18n.system_language(), i18n.LANGUAGES)
+
+    def test_mac_language_list_is_read_in_order(self) -> None:
+        # The Mac's AppleLanguages is a list of BCP 47 tags, in the user's own order.
+        def read(*languages: str) -> str:
+            listing = "(\n" + "".join(f'    "{tag}",\n' for tag in languages) + ")"
+            done = mock.Mock(returncode=0, stdout=listing)
+            with mock.patch.object(platform, "MAC", True), \
+                 mock.patch.object(platform, "WINDOWS", False), \
+                 mock.patch("subprocess.run", return_value=done):
+                return i18n.system_language()
+
+        self.assertEqual(read("de-DE", "en-US"), "de")
+        self.assertEqual(read("fr-CA"), "fr")
+        # A language the port does not have is passed over rather than taken as English.
+        self.assertEqual(read("hu-HU", "it-IT"), "it")
 
     def test_every_catalog_loads(self) -> None:
         for code in ("de", "es", "fr", "it"):

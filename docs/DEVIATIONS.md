@@ -120,7 +120,7 @@ Options>Settings has a Text size slider, last in the list, from 12 to 32 points 
 
 ## Language setting
 
-The original followed the device's language and had no setting. Here Options>Settings has a Language item, with each language named in its own language (English, Deutsch, Español, Français, Italiano). The first run picks Windows's display language if it is one of the five, otherwise English; after that the setting wins, so a player can choose a language different from Windows's. Reason: players may want the game in a language other than their computer's. Approved 2026-09-30.
+The original followed the device's language and had no setting. Here Options>Settings has a Language item, with each language named in its own language (English, Deutsch, Español, Français, Italiano). The first run picks the system's display language if it is one of the five, otherwise English: Windows's UI language, or the Mac's own list of preferred languages; after that the setting wins, so a player can choose a language different from the system's. Reason: players may want the game in a language other than their computer's. Approved 2026-09-30; the Mac added 2026-10-04.
 
 Text the original showed comes from the original's own translations (bopit/lang, made by tools/extract_texts.py). Text only this port has, such as spoken states, positions like "1 of 5", the Keys page and the reworded Help lines, stays in English. Reason: those texts have no original translation, and machine translations could not be checked. Approved 2026-09-30.
 
@@ -131,3 +131,23 @@ Text the original showed comes from the original's own translations (bopit/lang,
 ## Sliders move in 10 percent steps
 
 The Music and SFX sliders were continuous touch sliders. With the keyboard, each press moves them 10 percent. Reason: keyboard operation. Approved 2026-09-29.
+
+## The game runs on macOS as well as Windows
+
+The port is the same game on both platforms, not two games: the same engine, the same rules, timing, scoring, menus and sounds, and the same keyboard. Only the four things a platform has to decide live outside the game, in bopit/platform.py: how the game is quit (Alt+F4 on Windows, Command Q on the Mac, since a built Mac game has no menu bar of its own), which OpenAL Soft library is loaded, how the system's language is read, and where a built game keeps the player's own files. Speech is Prism on both, which means NVDA on Windows and VoiceOver or the system's own voice on the Mac; nothing else changed. Reason: the port should reach the players who have a Mac. Added 2026-10-04.
+
+## pygame is started before speech, because the Mac cares about the order
+
+On the Mac, SDL's first call to the video system builds the NSApplication object, gives it a normal activation policy and finishes launching it. If something has already loaded AppKit, SDL finds the application object already in place and leaves it unfinished. Prism's Mac backend loads AppKit on its way to AVFoundation, so starting speech first produced exactly that: the window appeared behind everything else, never took the keyboard, and macOS reported it as not responding, while the game itself ran perfectly well. So `main()` calls `pygame.init()` before `create_speech()`, and the window behaves. The fix is deliberately a change of order rather than a call that patches the policy afterwards, because a policy that is set by hand still leaves the application unfinished, which is the half that makes macOS call the window unresponsive. Symptom to watch for, if it ever comes back: the window is on screen, the game is playable, and no key ever reaches it. Reason: it is otherwise invisible from the code and it makes the game unplayable with sight and speech both. Added 2026-10-05.
+
+## OpenAL Soft is not vendored on macOS
+
+Windows and Linux carry OpenAL Soft in vendor, and bopit/openal_loader.py opens it before cyal is imported so cyal binds to it: cyal's Windows extension links OpenAL32.dll and the loader finds the vendored file already in the system under that name. The Mac cannot work that way. cyal's Mac wheel links OpenAL Soft through @loader_path, which only finds the copy beside cyal itself, so a vendored copy elsewhere would never be the library in use, and shipping one would only make the log lie. So on the Mac the game uses the OpenAL Soft that comes with cyal, which is the same library. bopit/openal_loader.py reports which OpenAL is really loaded on either platform, by asking dyld on the Mac and by asking the loader on Windows. Reason: honesty about what is running, and a 1.7 MB binary in the repository that does nothing. Added 2026-10-04.
+
+## The built Mac game's own files sit beside the bundle
+
+A built Windows game keeps settings.json, keys.json, scores.json, progress.json and logs/ beside BopIt.exe, and a new build leaves them alone. A Mac app keeps everything inside the bundle, where the next build replaces it, so the Mac game keeps its files in the folder holding BopIt.app instead: the same folder the Windows build's files are in, relative to the game. crash.txt goes there too. Reason: the point of keeping them beside the game is not losing them to a rebuild. Added 2026-10-04.
+
+## The Keys page says how to quit from anywhere
+
+Help's Keys page ends with the line "To leave the game from anywhere, press Alt+F4" on Windows and "press Command Q" on the Mac. Escape already leaves the game from the main menu, as it always did, but nothing inside a game does, and the Mac has no menu bar to click. Reason: a blind player has no way to find the chord otherwise. Added 2026-10-04.

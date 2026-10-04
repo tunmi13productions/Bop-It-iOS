@@ -229,3 +229,9 @@ research/
 
 # Log files, including debug mode event logs
 logs/
+
+# uv's environment for this project (uv sync)
+.venv/
+
+# macOS Finder metadata
+.DS_Store

@@ -4,7 +4,7 @@ All speech goes through `bopit/speech.py`. No other module imports Prism.
 
 ## Backend
 
-Prism picks the best available backend. On the developer's machine that is NVDA. NVDA's backend cannot report whether it is currently speaking, so nothing in this policy depends on knowing that. `Speech.is_speaking()` returns None when the backend cannot tell.
+Prism picks the best available backend. On the developer's Windows machine that is NVDA, and on the Mac VoiceOver when it is running, otherwise the system's own voice through Prism's AVSpeech backend. NVDA's backend cannot report whether it is currently speaking, so nothing in this policy depends on knowing that. `Speech.is_speaking()` returns None when the backend cannot tell.
 
 Text is sent with Prism's `output`, which speaks and also sends to a braille display, when the backend supports it.
 

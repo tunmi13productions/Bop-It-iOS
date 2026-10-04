@@ -7,6 +7,7 @@ from typing import Protocol
 import pygame
 
 from bopit import screens
+from bopit import platform
 from bopit.audio import Audio, Voice
 from bopit import i18n
 from bopit.config import Settings, save_settings
@@ -88,7 +89,7 @@ class App:
                  debug: DebugOptions | None = None, event_log: EventLog | None = None) -> None:
         self.speech = speech
         if not settings.language:
-            # The first run takes Windows's language, as the original took the phone's.
+            # The first run takes the system's language, as the original took the phone's.
             settings.language = i18n.system_language()
         i18n.set_language(settings.language)
         if hasattr(audio, "set_language"):
@@ -375,7 +376,7 @@ class App:
         return texts
 
     def _key_down(self, event: pygame.event.Event, now: float) -> None:
-        if event.key == pygame.K_F4 and event.mod & pygame.KMOD_ALT:
+        if platform.is_quit(event.key, event.mod):
             self._running = False
             return
         self._stack[-1].key(event.key, now)

@@ -1,0 +1,38 @@
+[project]
+name = "bopit"
+# A placeholder. The build number the game reports is VERSION, which releaser.py owns;
+# compiler.py puts that into the Mac bundle's Info.plist after PyInstaller has run.
+version = "0.0.0"
+description = "Accessible port of Bop It for iPhone, for Windows and macOS."
+readme = "README.md"
+# cyal, the OpenAL binding, has no wheels past CPython 3.12 on any platform, so 3.12 is
+# the version the port is developed and built against. See requirements.txt, which uv
+# exports from this file for pip users.
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "cyal>=0.4.5",
+    # soundfile hands back numpy arrays, and the game asks it for raw 16-bit PCM.
+    "numpy>=1.26",
+    # Prism speaks through NVDA on Windows and through VoiceOver and AVSpeech on the
+    # Mac. There is nothing Mac-specific to add: prismatoid ships one wheel per
+    # platform and carries the Apple frameworks itself.
+    "prismatoid>=0.18.2",
+    "pygame>=2.6.1",
+    "soundfile>=0.14.0",
+]
+
+[project.optional-dependencies]
+# What compiler.py and releaser.py need on top of the game's own packages.
+build = ["pyinstaller>=6.11"]
+
+[dependency-groups]
+# uv sync --group dev, which is what the build needs. Same list as the build extra above,
+# so pip users and uv users ask for the same thing by name.
+dev = [
+    "pyinstaller>=6.11",
+]
+
+[tool.uv]
+# The game is started with python -m bopit and built by compiler.py, never installed,
+# so this is a project of dependencies rather than one to build and wheel.
+package = false

@@ -15,6 +15,8 @@ if not __package__:
 # Keep pygame's startup banner out of the console, which a screen reader would read.
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 
+import pygame  # noqa: E402  after the banner is off, so nothing above imports it
+
 from bopit.app import App
 from bopit.audio import Audio
 from bopit.config import LANGUAGE_SOUNDS_DIR, SOUNDS_DIR, UNLOADED_SOUND_DIRS, load_settings
@@ -36,6 +38,13 @@ def main() -> None:
     log_path = setup_logging(logging.DEBUG if args.verbose else logging.INFO)
     log.info("Logging to %s", log_path)
     settings = load_settings()
+    # pygame.init() opens the Mac's application object, and it has to happen before
+    # anything else: Prism's Mac backend loads AppKit on its way to AVFoundation, and if
+    # AppKit is there first, SDL finds an application object already in place and leaves
+    # it unfinished. The window then appears but never comes to the front, never gets the
+    # keyboard, and macOS calls it unresponsive. App.run() calls this again, which is
+    # harmless. See docs/DEVIATIONS.md.
+    pygame.init()
     speech = create_speech(settings.speech_chars_per_second)
 
     audio = Audio(lambda message: speech.speak(message, interrupt=True),

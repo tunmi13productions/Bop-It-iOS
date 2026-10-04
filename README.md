@@ -2,7 +2,7 @@
 
 An accessible port of Bop It for iPhone (version 1.1.9, for iOS 3.0), made so that blind and low-vision players can play it with a keyboard and a screen reader. It is a faithful port, not a remake: the game rules, timing, speed-ups, scoring, menus, sounds and music follow the original, recovered from the original app itself. Everything the original showed on screen is spoken, and the game can be played with no screen at all.
 
-It runs on Windows, speaks through your screen reader (NVDA, or others through Prism), and plays its sound through OpenAL Soft.
+It runs on Windows and macOS, speaks through your screen reader (NVDA on Windows, VoiceOver on the Mac, others through Prism), and plays its sound through OpenAL Soft.
 
 The game has its own help and tutorials: see Options, then Help, in the game. This readme is for the repository.
 
@@ -40,8 +40,9 @@ Built with:
 - Prism (the prismatoid package), for speech.
 - OpenAL Soft, through cyal, for audio.
 - soundfile, for decoding the sounds.
-- The NVDA controller client.
-- PyInstaller, for building the Windows program.
+- uv, for the packages.
+- The NVDA controller client, on Windows.
+- PyInstaller, for building the game.
 
 ## License
 
@@ -49,64 +50,72 @@ The port's own code is under the MIT License, in LICENSE. That license covers on
 
 ## Playing from source
 
-1. Install 64-bit Python 3.12 or later.
-2. Install the game's packages:
+1. Install 64-bit Python 3.12, and uv.
+2. Install the game's packages into .venv:
 
 ```
-pip install -r requirements.txt
+uv sync
 ```
 
 3. From the repository folder, start the game:
 
 ```
-python -m bopit
+uv run python -m bopit
 ```
+
+uv reads pyproject.toml and uv.lock, which between them pin every package the game needs on either platform. requirements.txt is the same set exported for pip, if you would rather not use uv; `uv sync` is the way the port is developed and built.
 
 The first time it runs, the game writes settings.json, keys.json and its other files beside itself. The game keys can be changed in keys.json, and Help, Keys in the game lists them. Start it with the --help flag to see the debug options, including a bot that plays the game by itself; docs/DEBUG_MODE.md explains them.
 
-## Building the Windows program
+Escape leaves the game from the main menu. From anywhere, it is Alt+F4 on Windows and Command Q on the Mac.
 
-compiler.py builds the game into dist\BopIt, around BopIt.exe, with everything it needs inside.
+## Building the game
+
+compiler.py builds the game for whichever platform you are on: into dist\BopIt around BopIt.exe on Windows, and into dist\BopIt.app on the Mac, with everything it needs inside.
 
 1. Install PyInstaller as well as the game's packages:
 
 ```
-pip install pyinstaller
+uv sync --group dev
 ```
+
+which is `pip install pyinstaller` if you are not using uv.
 
 2. Double-click compiler.py, or run it, and choose a build from the menu:
 
 ```
-python compiler.py
+uv run python compiler.py
 ```
 
-3. The game is dist\BopIt\BopIt.exe. The whole dist\BopIt folder is what a player needs.
+3. The game is dist\BopIt\BopIt.exe, or dist\BopIt.app. That folder or bundle is all a player needs.
 
 You can also give the compiler a flag and skip the menu. To build the game:
 
 ```
-python compiler.py
+uv run python compiler.py
 ```
 
 To build it with a console window, to see why it will not start:
 
 ```
-python compiler.py --console
+uv run python compiler.py --console
 ```
 
 To empty PyInstaller's cache first:
 
 ```
-python compiler.py --clean
+uv run python compiler.py --clean
 ```
 
 To see what a build would do, without building anything:
 
 ```
-python compiler.py --dry-run
+uv run python compiler.py --dry-run
 ```
 
-A built game keeps the player's settings, scores, keys and logs beside BopIt.exe, so a new build does not lose them. If it ever fails to start, it writes crash.txt there.
+A built game keeps the player's settings, scores, keys and logs beside the executable on Windows and beside BopIt.app on the Mac, so a new build does not lose them. If it ever fails to start, it writes crash.txt there.
+
+The Mac build is signed ad hoc, which is what PyInstaller does there already and is enough for the game to run. The first time it opens the microphone, macOS asks for permission; the answer is in the bundle's Info.plist.
 
 ## Releasing
 
@@ -130,14 +139,14 @@ Fixed the Blitz Challenge break screen.
 4. Double-click releaser.py, or run it. It says which build it will make and asks once. Type Y and press Enter.
 
 ```
-python releaser.py
+uv run python releaser.py
 ```
 
 It then does the rest:
 
 - It sets VERSION to the new build number, and files any changelog lines under "Build" and the number.
 - It builds the game with compiler.py.
-- It zips the build to dist\BopIt-<number>.zip.
+- It zips the build to dist\BopIt-<number>.zip. On the Mac the zip is made with ditto, so the bundle's symlinks survive it.
 - It commits VERSION as "Build" and the number, and pushes.
 - It tags the commit with the build number, and pushes the tag.
 - It uploads the zip as the GitHub release "Bop It build" and the number, with the changelog lines as its notes.
@@ -183,5 +192,5 @@ python tools/extract_texts.py
 From the repository folder:
 
 ```
-python -m unittest discover -s tests
+uv run python -m unittest discover -s tests
 ```

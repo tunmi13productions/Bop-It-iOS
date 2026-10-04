@@ -6,16 +6,18 @@ import sys
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
+from bopit import platform
+
 log = logging.getLogger(__name__)
 
-if getattr(sys, "frozen", False):
-    # A build made by compiler.py: the game's own files are bundled in PyInstaller's folder,
-    # and the player's files (settings, scores, keys, logs) sit beside the executable.
+if platform.IS_FROZEN:
+    # A build made by compiler.py: the game's own files are bundled in PyInstaller's folder.
     PROJECT_ROOT = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
-    USER_DIR = Path(sys.executable).resolve().parent
 else:
     PROJECT_ROOT = Path(__file__).resolve().parent.parent
-    USER_DIR = PROJECT_ROOT
+# The player's own files (settings, scores, keys, logs): beside the executable, or beside
+# the .app bundle on the Mac, where the next build would swallow them.
+USER_DIR = platform.user_dir(PROJECT_ROOT)
 ORIGINAL_APP_DIR = PROJECT_ROOT / "BopIt.app"
 ORIGINAL_LANG_DIR = ORIGINAL_APP_DIR / "English.lproj"
 SOUNDS_DIR = PROJECT_ROOT / "sounds"
@@ -54,7 +56,7 @@ class Settings:
     # Commands last picked in the multiplayer command picker. Empty means its defaults.
     picked: list[str] = field(default_factory=list)
     # Our additions.
-    # The language, a code from i18n.LANGUAGES. Empty until the first run picks Windows's.
+    # The language, a code from i18n.LANGUAGES. Empty until the first run takes the system's.
     language: str = ""
     # Shout It X-Move through the microphone (the original's "shout Yeah!" move).
     microphone: bool = True

@@ -1,6 +1,6 @@
 """The game's languages. The original shipped English, German, Spanish, French and Italian,
 and followed the device's language. Here the language is a setting, first chosen from
-Windows's language (see docs/DEVIATIONS.md).
+the system's language (see docs/DEVIATIONS.md).
 
 Text the original showed is translated with the original's own translations, from the
 catalogs in bopit/lang (made by tools/extract_texts.py). Text only this port has stays in
@@ -12,8 +12,9 @@ import json
 import locale
 import logging
 import re
-import sys
 from pathlib import Path
+
+from bopit import platform
 
 log = logging.getLogger(__name__)
 
@@ -75,14 +76,27 @@ def trf(template: str, *args: object) -> str:
 
 
 def system_language() -> str:
-    """Windows's display language if it is one of the five, otherwise English."""
-    if sys.platform == "win32":
+    """The system's language if it is one of the five, otherwise English."""
+    if platform.WINDOWS:
         try:
             import ctypes
             langid = ctypes.windll.kernel32.GetUserDefaultUILanguage()
             return _WINDOWS_LANGUAGES.get(langid & 0x3FF, "en")
         except (AttributeError, OSError):
             pass
+    if platform.MAC:
+        # The Mac's own language list, the one Settings shows, in the order the user
+        # put them. Read with defaults so nothing has to be linked in.
+        try:
+            import subprocess
+            done = subprocess.run(["/usr/bin/defaults", "read", "-g", "AppleLanguages"],
+                                   capture_output=True, text=True, timeout=2)
+            for tag in re.findall(r'"([^"]+)"', done.stdout or ""):
+                code = tag.split("-")[0].split("_")[0].lower()
+                if code in LANGUAGES:
+                    return code
+        except (OSError, ValueError):
+            log.debug("Could not read the Mac's language list", exc_info=True)
     name = (locale.getlocale()[0] or "").lower()
     for code in LANGUAGES:
         if name.startswith(code):

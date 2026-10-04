@@ -25,10 +25,12 @@ Accessibility and speech operation come before everything else, including graphi
 
 ## Tech stack
 
-- Python 3.12 or later.
+- Python 3.12. Exactly 3.12: cyal, the OpenAL binding, has no wheels past it on any platform, so a newer Python means building cyal from source.
+- Dependencies: uv. pyproject.toml says what the game needs, uv.lock pins it, and requirements.txt is exported from those for pip. Do not pip install into the system Python; use `uv sync` and `uv run`.
+- Platforms: Windows and macOS, the same game on both. Anything platform-specific belongs in bopit/platform.py, so gameplay code never branches on sys.platform. If a new platform is added, that file and whatever it names are the only places to touch.
 - Windowing, input, and event loop: pygame. Note that pygame is used for the window, keyboard events, and timing. Do NOT use pygame.mixer for game audio.
-- Speech: Prism. All spoken output goes through Prism. Verify the actual Prism Python API and its available backends before writing code. Do not assume method names. If the bindings are missing or awkward, tell the developer and propose a thin wrapper.
-- Audio: OpenAL Soft, through a Python OpenAL binding. Verify which binding is installed and maintained before choosing one. Spatialization, pitch, and precise timing all matter here.
+- Speech: Prism. All spoken output goes through Prism. Verify the actual Prism Python API and its available backends before writing code. Do not assume method names. If the bindings are missing or awkward, tell the developer and propose a thin wrapper. On the Mac the backend is VoiceOver, or the system's own voice through Prism's AVSpeech backend.
+- Audio: OpenAL Soft, through a Python OpenAL binding. Verify which binding is installed and maintained before choosing one. Spatialization, pitch, and precise timing all matter here. The Mac has no vendored OpenAL Soft and uses cyal's, because cyal links its own through @loader_path; see docs/DEVIATIONS.md.
 - Images: the included images may be used, but visuals are low priority. Do not spend effort on graphics until everything else works.
 
 ## Speech rules

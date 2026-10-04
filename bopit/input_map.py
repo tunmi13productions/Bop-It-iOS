@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pygame
 
+from bopit import platform
 from bopit.config import KEYS_PATH
 from bopit.menu import Nav
 
@@ -257,5 +258,8 @@ def describe_bindings() -> list[str]:
         lines.append(f"Head 2 Head {name}: " + ", ".join(parts))
     lines.append(f"Head 2 Head score: {_names(_current.h2h_score)}")
     lines.append(MENU_KEYS_TEXT)
+    # Escape leaves the game from the main menu, but nothing inside a game does, and a
+    # built Mac game has no menu bar to click, so the chord has to be written down.
+    lines.append(f"To leave the game from anywhere, press {platform.quit_hint()}.")
     lines.append("To change the game keys, edit keys.json in the game folder.")
     return lines

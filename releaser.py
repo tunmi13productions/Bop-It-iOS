@@ -9,8 +9,10 @@ takes the next one. The steps:
     1. check     everything is committed and pushed, and the GitHub CLI (gh) is signed in
     2. version   VERSION becomes the new build number; if changelog.txt has lines under
                  "unrelease:", they are filed under "Build <n>:" (there is no minimum or maximum)
-    3. build     compiler.py builds dist\\BopIt; if it fails, VERSION and the changelog go back
-    4. zip       dist\\BopIt becomes dist\\BopIt-<n>.zip, which extracts to a BopIt folder
+    3. build     compiler.py builds dist\\BopIt, or dist\\BopIt.app on the Mac; if it fails,
+                 VERSION and the changelog go back
+    4. zip       the build becomes dist\\BopIt-<n>.zip, which extracts to a BopIt folder on
+                 Windows and to BopIt.app on the Mac
     5. commit    VERSION and the changelog are committed as "Build <n>" and pushed
     6. tag       the commit is tagged <n>, and the tag is pushed
     7. upload    the zip goes up as the GitHub release "Bop It build <n>", with that build's
@@ -29,6 +31,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 import compiler  # noqa: E402
+from bopit import platform  # noqa: E402
 
 VERSION_FILE = HERE / "VERSION"
 CHANGELOG = HERE / "changelog.txt"
@@ -84,6 +87,17 @@ def check() -> list[str]:
 
 def make_zip(build: int) -> Path:
     archive = compiler.DIST / f"{compiler.NAME}-{build}.zip"
+    if platform.MAC:
+        # ditto, because an app bundle is not a folder of files: it has symlinks and
+        # resource forks, and a plain zip writes the links as copies of what they point
+        # at, which the Finder then refuses to open. ditto -c -k is how macOS itself
+        # makes a zip of a bundle, and it is on every Mac.
+        done = subprocess.run(["/usr/bin/ditto", "-c", "-k", "--sequesterRsrc", "--keepParent",
+                               str(compiler.OUTPUT), str(archive)],
+                              capture_output=True, text=True)
+        if done.returncode != 0:
+            raise SystemExit(f"Could not zip the app: {done.stderr.strip()}")
+        return archive
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
         for path in sorted(compiler.OUTPUT.rglob("*")):
             if path.is_file():
